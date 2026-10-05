@@ -1,14 +1,11 @@
 :root {
-  --bg: #061619;
-  --bg-deep: #020d0f;
-  --panel: #071b1f;
-  --line: #18383c;
-  --text: #b7d8d6;
-  --muted: #567b7c;
-  --accent: #a8d4d1;
-
-  --header-height: 58px;
-  --footer-height: 124px;
+  --background: #020d14;
+  --mint: #a4f1df;
+  --mint-soft: #8ee0d1;
+  --line: #72c8bc;
+  --ink: #031017;
+  --header-height: 84px;
+  --footer-height: 96px;
 }
 
 * {
@@ -18,26 +15,15 @@
 html,
 body {
   width: 100%;
-  min-width: 100%;
   height: 100%;
-  min-height: 100%;
   margin: 0;
 }
 
 body {
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 45%, #0a252a 0%, var(--bg) 48%, var(--bg-deep) 100%);
-  color: var(--text);
-  font-family: "Courier New", Courier, monospace;
-  cursor: crosshair;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
+  background: var(--background);
+  color: var(--mint);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .terminal-shell {
@@ -45,159 +31,244 @@ select {
   height: 100vh;
   display: grid;
   grid-template-rows: var(--header-height) minmax(0, 1fr) var(--footer-height);
-  background: rgba(2, 13, 15, 0.18);
+  background: var(--background);
 }
+
+/* Header */
 
 .terminal-header {
+  display: grid;
+  grid-template-columns: 1fr 0.93fr 170px;
+  margin: 14px 18px 0;
+  height: 48px;
+  border: 1px solid var(--mint);
+  color: var(--mint);
+}
+
+.file-panel,
+.completion-panel,
+.brand-panel {
+  min-width: 0;
+  height: 100%;
+}
+
+.file-panel {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--line);
-  letter-spacing: 0.12em;
-  font-size: 12px;
-  user-select: none;
+  justify-content: center;
+  border-right: 1px solid var(--mint);
+  font-size: 27px;
+  letter-spacing: 0.01em;
 }
 
-.company-identity,
-.file-status {
+.completion-panel {
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: var(--mint);
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: 400;
 }
 
-.company-identity {
-  gap: 12px;
+.brand-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-left: 1px solid var(--mint);
 }
 
-.company-mark {
-  color: var(--accent);
-  font-size: 21px;
-  line-height: 1;
+.brand-word {
+  position: relative;
+  z-index: 2;
+  font-size: 24px;
+  letter-spacing: 0.04em;
 }
 
-.company-name {
-  color: var(--text);
-}
-
-.file-status {
-  gap: 22px;
-}
-
-.file-name {
-  color: var(--muted);
-}
-
-.file-progress {
-  min-width: 3ch;
-  text-align: right;
-}
-
-.system-indicator {
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--accent);
+.brand-orbit {
+  position: absolute;
+  width: 118px;
+  height: 50px;
+  border: 1px solid var(--mint);
   border-radius: 50%;
-  box-shadow: 0 0 7px rgba(168, 212, 209, 0.22);
+  opacity: 0.9;
 }
+
+.brand-orbit-a {
+  transform: rotate(0deg);
+}
+
+.brand-orbit-b {
+  transform: rotate(63deg);
+}
+
+/* Data field */
 
 .data-viewport {
-  position: relative;
   min-height: 0;
   overflow: hidden;
+  border-top: 1px solid rgba(114, 200, 188, 0.55);
 }
 
-.viewport-status {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  margin: 0;
-  transform: translate(-50%, -50%);
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.24em;
-  opacity: 0.45;
+.number-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(27, minmax(0, 1fr));
+  grid-template-rows: repeat(10, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  padding: 4px 10px 6px;
+}
+
+.data-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  color: var(--mint);
+  font-family: "Courier New", Courier, monospace;
+  font-size: clamp(15px, 1.22vw, 22px);
+  font-weight: 700;
+  line-height: 1;
   user-select: none;
+}
+
+/* Slight size variation matches the reference without making the field animated yet. */
+.data-number.emphasis-1 {
+  font-size: clamp(19px, 1.7vw, 30px);
+  font-weight: 400;
+}
+
+.data-number.emphasis-2 {
+  font-size: clamp(24px, 2.1vw, 38px);
+  font-weight: 400;
+}
+
+/* Footer */
+
+.refinement-footer {
+  position: relative;
+  border-top: 1px solid var(--line);
+  background: var(--background);
 }
 
 .refinement-bins {
+  height: 74px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 28px;
-  align-items: center;
-  padding: 20px 30px 22px;
-  border-top: 1px solid var(--line);
-  background: rgba(4, 18, 20, 0.44);
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(28px, 5vw, 88px);
+  align-items: start;
+  padding: 10px 38px 0;
 }
 
 .refinement-bin {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-areas:
-    "number track percentage";
-  align-items: center;
-  gap: 12px;
   min-width: 0;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.08em;
 }
 
-.bin-number {
-  grid-area: number;
-  color: var(--text);
+.bin-label {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  line-height: 1;
 }
 
-.bin-progress-track {
-  grid-area: track;
+.bin-meter {
   position: relative;
-  height: 2px;
-  min-width: 40px;
+  height: 25px;
+  margin-top: 4px;
   overflow: hidden;
-  background: #123034;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
 }
 
-.bin-progress-fill {
-  width: 0%;
+.bin-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--mint);
+}
+
+.bin-value {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
   height: 100%;
-  background: var(--accent);
+  padding-left: 12px;
+  color: var(--ink);
 }
 
-.bin-percentage {
-  grid-area: percentage;
-  min-width: 3ch;
-  text-align: right;
+.system-code {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mint);
+  color: #295351;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  letter-spacing: 0.05em;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 900px) {
   :root {
-    --footer-height: 176px;
+    --header-height: 72px;
+    --footer-height: 90px;
   }
 
   .terminal-header {
-    padding: 0 14px;
+    grid-template-columns: 1fr 0.8fr 118px;
+    margin-inline: 10px;
+    height: 42px;
   }
 
-  .company-name {
+  .file-panel,
+  .completion-panel {
+    font-size: 20px;
+  }
+
+  .brand-word {
+    font-size: 16px;
+  }
+
+  .brand-orbit {
+    width: 86px;
+    height: 36px;
+  }
+
+  .number-grid {
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+  }
+
+  .number-grid .data-number:nth-child(n + 201) {
     display: none;
   }
 
   .refinement-bins {
-    grid-template-columns: repeat(5, minmax(44px, 1fr));
     gap: 10px;
-    padding-inline: 14px;
+    padding-inline: 10px;
   }
 
-  .refinement-bin {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "number"
-      "track"
-      "percentage";
-    gap: 7px;
-    text-align: center;
+  .bin-label,
+  .bin-meter {
+    font-size: 12px;
   }
 
-  .bin-percentage {
-    text-align: center;
-    justify-self: center;
+  .bin-value {
+    padding-left: 6px;
   }
 }
