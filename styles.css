@@ -123,8 +123,8 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 2400px;
-  height: 1400px;
+  width: 2200px;
+  height: 1180px;
   transform-origin: 0 0;
   will-change: transform;
 }
@@ -137,7 +137,7 @@ body {
   grid-template-rows: repeat(22, 1fr);
   align-items: center;
   justify-items: center;
-  padding: 22px 34px;
+  padding: 18px 30px;
 }
 
 .data-number {
