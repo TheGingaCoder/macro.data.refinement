@@ -107,20 +107,37 @@ body {
 /* Data field */
 
 .data-viewport {
+  position: relative;
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid rgba(114, 200, 188, 0.55);
+  cursor: grab;
+  touch-action: none;
+}
+
+.data-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.number-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2400px;
+  height: 1400px;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 .number-grid {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: repeat(27, minmax(0, 1fr));
-  grid-template-rows: repeat(10, minmax(0, 1fr));
+  grid-template-columns: repeat(36, 1fr);
+  grid-template-rows: repeat(22, 1fr);
   align-items: center;
   justify-items: center;
-  padding: 4px 10px 6px;
+  padding: 22px 34px;
 }
 
 .data-number {
@@ -131,21 +148,49 @@ body {
   height: 1.4em;
   color: var(--mint);
   font-family: "Courier New", Courier, monospace;
-  font-size: clamp(15px, 1.22vw, 22px);
+  font-size: 22px;
   font-weight: 700;
   line-height: 1;
   user-select: none;
+  pointer-events: auto;
+  transition:
+    transform 90ms linear,
+    opacity 90ms linear;
 }
 
-/* Slight size variation matches the reference without making the field animated yet. */
+.data-number.near-cursor {
+  transform: scale(1.15);
+}
+
 .data-number.emphasis-1 {
-  font-size: clamp(19px, 1.7vw, 30px);
+  font-size: 30px;
   font-weight: 400;
 }
 
 .data-number.emphasis-2 {
-  font-size: clamp(24px, 2.1vw, 38px);
+  font-size: 38px;
   font-weight: 400;
+}
+
+.zoom-readout {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  min-width: 54px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  background: var(--background);
+  color: var(--mint);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms linear;
+}
+
+.zoom-readout.is-visible {
+  opacity: 1;
 }
 
 /* Footer */
@@ -167,6 +212,13 @@ body {
 
 .refinement-bin {
   min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.refinement-bin:active .bin-label,
+.refinement-bin:active .bin-meter {
+  background: rgba(164, 241, 223, 0.08);
 }
 
 .bin-label {
@@ -250,12 +302,14 @@ body {
     height: 36px;
   }
 
-  .number-grid {
-    grid-template-columns: repeat(20, minmax(0, 1fr));
+  .number-world {
+    width: 1900px;
+    height: 1250px;
   }
 
-  .number-grid .data-number:nth-child(n + 201) {
-    display: none;
+  .number-grid {
+    grid-template-columns: repeat(30, 1fr);
+    grid-template-rows: repeat(20, 1fr);
   }
 
   .refinement-bins {
