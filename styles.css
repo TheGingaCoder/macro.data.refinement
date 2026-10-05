@@ -99,11 +99,29 @@ body {
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid rgba(114, 200, 188, 0.55);
-  cursor: grab;
+  cursor: crosshair;
   touch-action: none;
 }
 
-.data-viewport.is-dragging { cursor: grabbing; }
+.data-viewport.is-panning { cursor: grabbing; }
+
+.selection-box {
+  position: absolute;
+  display: none;
+  border: 1px solid var(--mint);
+  background: rgba(164, 241, 223, 0.06);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.selection-box.is-active {
+  display: block;
+}
+
+.data-number.is-selected {
+  color: var(--background);
+  background: var(--mint);
+}
 
 .number-world {
   position: absolute;
