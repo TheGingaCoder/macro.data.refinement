@@ -24,7 +24,6 @@ const camera = {
 };
 
 const chunks = new Map();
-const refinedCoordinates = new Set();
 
 let interactionMode = null;
 let pointerId = null;
@@ -155,10 +154,6 @@ function createChunk(chunkX, chunkY) {
       number.dataset.worldColumn = globalColumn;
       number.dataset.worldRow = globalRow;
       number.textContent = hashCoordinates(globalColumn, globalRow, 7) % 10;
-
-      if (refinedCoordinates.has(coordinateKey(globalColumn, globalRow))) {
-        number.style.visibility = "hidden";
-      }
 
       const emphasis = seededUnit(globalColumn, globalRow, 19);
 
@@ -392,8 +387,7 @@ function collectSelectedNumbers() {
 
   return [...viewport.querySelectorAll(".data-number")].filter((number) => {
     if (number.classList.contains("is-refining")) return false;
-    if (number.style.visibility === "hidden") return false;
-
+    
     const numberRect = number.getBoundingClientRect();
     const centerX = numberRect.left + numberRect.width / 2 - viewportRect.left;
     const centerY = numberRect.top + numberRect.height / 2 - viewportRect.top;
@@ -437,6 +431,16 @@ function animateNumbersToBank(numbers) {
     Math.max(80, Math.abs(targetX - averageStartX) * 0.16)
   );
 
+  const TOTAL_RELEASE_MS = 1000;
+  const ITEM_DURATION_MS = Math.min(
+    720,
+    Math.max(260, TOTAL_RELEASE_MS / Math.max(1, ordered.length) * 4.2)
+  );
+
+  const availableStagger = Math.max(0, TOTAL_RELEASE_MS - ITEM_DURATION_MS);
+  const stagger =
+    ordered.length <= 1 ? 0 : availableStagger / (ordered.length - 1);
+
   bank.classList.add("bank-hit");
 
   ordered.forEach((number, index) => {
@@ -460,13 +464,10 @@ function animateNumbersToBank(numbers) {
     const startY = rect.top + rect.height / 2;
     const dx = targetX - startX;
     const dy = targetY - startY;
-
-    // Every number follows the same broad curve. This makes the group feel like
-    // one continuous trail rather than separate objects taking unrelated arcs.
     const curve = curveStrength * curveDirection;
 
-    const delay = Math.min(index * 72, 1500);
-    const duration = 980 + Math.min(index * 10, 260);
+    const delay = stagger * index;
+    const duration = ITEM_DURATION_MS;
 
     const animation = clone.animate(
       [
@@ -476,32 +477,27 @@ function animateNumbersToBank(numbers) {
           offset: 0
         },
         {
-          transform: `translate3d(${dx * 0.16 + curve * 0.24}px, ${dy * 0.10 - 18}px, 0) scale(1.17)`,
+          transform: `translate3d(${dx * 0.18 + curve * 0.22}px, ${dy * 0.12 - 14}px, 0) scale(1.16)`,
           opacity: 1,
-          offset: 0.16
+          offset: 0.18
         },
         {
-          transform: `translate3d(${dx * 0.34 + curve * 0.52}px, ${dy * 0.25 - 30}px, 0) scale(1.12)`,
+          transform: `translate3d(${dx * 0.40 + curve * 0.48}px, ${dy * 0.30 - 26}px, 0) scale(1.08)`,
           opacity: 1,
-          offset: 0.34
+          offset: 0.40
         },
         {
-          transform: `translate3d(${dx * 0.56 + curve * 0.58}px, ${dy * 0.48 - 22}px, 0) scale(1.0)`,
-          opacity: 0.98,
-          offset: 0.56
+          transform: `translate3d(${dx * 0.64 + curve * 0.52}px, ${dy * 0.56 - 18}px, 0) scale(0.93)`,
+          opacity: 0.96,
+          offset: 0.64
         },
         {
-          transform: `translate3d(${dx * 0.77 + curve * 0.36}px, ${dy * 0.72 - 8}px, 0) scale(0.78)`,
-          opacity: 0.88,
-          offset: 0.76
+          transform: `translate3d(${dx * 0.84 + curve * 0.26}px, ${dy * 0.80 - 5}px, 0) scale(0.62)`,
+          opacity: 0.72,
+          offset: 0.84
         },
         {
-          transform: `translate3d(${dx * 0.92 + curve * 0.12}px, ${dy * 0.91}px, 0) scale(0.46)`,
-          opacity: 0.55,
-          offset: 0.91
-        },
-        {
-          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.14)`,
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.12)`,
           opacity: 0,
           offset: 1
         }
@@ -515,13 +511,6 @@ function animateNumbersToBank(numbers) {
     );
 
     animation.finished.then(() => {
-      const key = coordinateKey(
-        Number(number.dataset.worldColumn),
-        Number(number.dataset.worldRow)
-      );
-
-      refinedCoordinates.add(key);
-      number.style.visibility = "hidden";
       number.classList.remove("is-refining");
       clone.remove();
 
@@ -532,7 +521,7 @@ function animateNumbersToBank(numbers) {
 
         setTimeout(() => {
           bank.classList.remove("bank-hit");
-        }, 260);
+        }, 220);
       }
     });
   });
