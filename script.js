@@ -290,6 +290,44 @@ function viewportPoint(event) {
   };
 }
 
+function updateSelectionPreview() {
+  const left = Math.min(selectionStartX, selectionEndX);
+  const right = Math.max(selectionStartX, selectionEndX);
+  const top = Math.min(selectionStartY, selectionEndY);
+  const bottom = Math.max(selectionStartY, selectionEndY);
+  const viewportRect = viewport.getBoundingClientRect();
+
+  viewport.querySelectorAll(".data-number").forEach((number) => {
+    if (number.classList.contains("is-refining")) {
+      number.classList.remove("selection-preview");
+      return;
+    }
+
+    if (number.style.visibility === "hidden") {
+      number.classList.remove("selection-preview");
+      return;
+    }
+
+    const numberRect = number.getBoundingClientRect();
+    const centerX = numberRect.left + numberRect.width / 2 - viewportRect.left;
+    const centerY = numberRect.top + numberRect.height / 2 - viewportRect.top;
+
+    number.classList.toggle(
+      "selection-preview",
+      centerX >= left &&
+      centerX <= right &&
+      centerY >= top &&
+      centerY <= bottom
+    );
+  });
+}
+
+function clearSelectionPreview() {
+  viewport.querySelectorAll(".data-number.selection-preview").forEach((number) => {
+    number.classList.remove("selection-preview");
+  });
+}
+
 function updateSelectionBox() {
   const left = Math.min(selectionStartX, selectionEndX);
   const top = Math.min(selectionStartY, selectionEndY);
@@ -300,6 +338,8 @@ function updateSelectionBox() {
   selectionBox.style.top = `${top}px`;
   selectionBox.style.width = `${width}px`;
   selectionBox.style.height = `${height}px`;
+
+  updateSelectionPreview();
 }
 
 function playArrivalSound(index) {
@@ -379,13 +419,28 @@ function animateNumbersToBank(numbers) {
   const ordered = [...numbers].sort((a, b) => {
     const aRect = a.getBoundingClientRect();
     const bRect = b.getBoundingClientRect();
-    return (aRect.left + aRect.top) - (bRect.left + bRect.top);
+
+    return (
+      aRect.left + aRect.top * 0.35 -
+      (bRect.left + bRect.top * 0.35)
+    );
   });
+
+  const sourceRects = ordered.map((number) => number.getBoundingClientRect());
+  const averageStartX =
+    sourceRects.reduce((sum, rect) => sum + rect.left + rect.width / 2, 0) /
+    sourceRects.length;
+
+  const curveDirection = targetX >= averageStartX ? 1 : -1;
+  const curveStrength = Math.min(
+    180,
+    Math.max(80, Math.abs(targetX - averageStartX) * 0.16)
+  );
 
   bank.classList.add("bank-hit");
 
   ordered.forEach((number, index) => {
-    const rect = number.getBoundingClientRect();
+    const rect = sourceRects[index];
     const clone = document.createElement("span");
 
     clone.className = "refining-number";
@@ -397,6 +452,8 @@ function animateNumbersToBank(numbers) {
     clone.style.fontSize = getComputedStyle(number).fontSize;
 
     document.body.appendChild(clone);
+
+    number.classList.remove("selection-preview");
     number.classList.add("is-refining");
 
     const startX = rect.left + rect.width / 2;
@@ -404,31 +461,47 @@ function animateNumbersToBank(numbers) {
     const dx = targetX - startX;
     const dy = targetY - startY;
 
-    const bend = Math.max(45, Math.min(130, Math.abs(dx) * 0.12));
-    const direction = index % 2 === 0 ? -1 : 1;
+    // Every number follows the same broad curve. This makes the group feel like
+    // one continuous trail rather than separate objects taking unrelated arcs.
+    const curve = curveStrength * curveDirection;
 
-    const delay = Math.min(index * 42, 900);
-    const duration = 460 + Math.min(index * 8, 180);
+    const delay = Math.min(index * 72, 1500);
+    const duration = 980 + Math.min(index * 10, 260);
 
     const animation = clone.animate(
       [
         {
-          transform: "translate3d(0, 0, 0) scale(1)",
+          transform: "translate3d(0, 0, 0) scale(1.16)",
           opacity: 1,
           offset: 0
         },
         {
-          transform: `translate3d(${dx * 0.32 + direction * bend}px, ${dy * 0.22 - 34}px, 0) scale(1.08)`,
+          transform: `translate3d(${dx * 0.16 + curve * 0.24}px, ${dy * 0.10 - 18}px, 0) scale(1.17)`,
           opacity: 1,
-          offset: 0.35
+          offset: 0.16
         },
         {
-          transform: `translate3d(${dx * 0.72 - direction * bend * 0.35}px, ${dy * 0.70}px, 0) scale(0.78)`,
-          opacity: 0.92,
-          offset: 0.72
+          transform: `translate3d(${dx * 0.34 + curve * 0.52}px, ${dy * 0.25 - 30}px, 0) scale(1.12)`,
+          opacity: 1,
+          offset: 0.34
         },
         {
-          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.18)`,
+          transform: `translate3d(${dx * 0.56 + curve * 0.58}px, ${dy * 0.48 - 22}px, 0) scale(1.0)`,
+          opacity: 0.98,
+          offset: 0.56
+        },
+        {
+          transform: `translate3d(${dx * 0.77 + curve * 0.36}px, ${dy * 0.72 - 8}px, 0) scale(0.78)`,
+          opacity: 0.88,
+          offset: 0.76
+        },
+        {
+          transform: `translate3d(${dx * 0.92 + curve * 0.12}px, ${dy * 0.91}px, 0) scale(0.46)`,
+          opacity: 0.55,
+          offset: 0.91
+        },
+        {
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.14)`,
           opacity: 0,
           offset: 1
         }
@@ -436,7 +509,7 @@ function animateNumbersToBank(numbers) {
       {
         duration,
         delay,
-        easing: "cubic-bezier(.22,.78,.2,1)",
+        easing: "cubic-bezier(.18,.72,.22,1)",
         fill: "forwards"
       }
     );
@@ -459,7 +532,7 @@ function animateNumbersToBank(numbers) {
 
         setTimeout(() => {
           bank.classList.remove("bank-hit");
-        }, 190);
+        }, 260);
       }
     });
   });
@@ -468,6 +541,7 @@ function animateNumbersToBank(numbers) {
 function finalizeSelection() {
   selectionBox.classList.remove("is-active");
   const numbers = collectSelectedNumbers();
+  clearSelectionPreview();
   animateNumbersToBank(numbers);
 }
 
@@ -613,6 +687,7 @@ viewport.addEventListener("pointercancel", (event) => {
 
   const endingMode = interactionMode;
   selectionBox.classList.remove("is-active");
+  clearSelectionPreview();
 
   interactionMode = null;
   pointerId = null;
