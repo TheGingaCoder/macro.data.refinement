@@ -154,10 +154,18 @@ body {
   user-select: none;
   pointer-events: auto;
   transform-origin: center;
-  transition: transform 90ms linear, opacity 90ms linear;
+  transition: transform 150ms cubic-bezier(.2,.7,.2,1), opacity 120ms linear;
 }
 
-.data-number.near-cursor { transform: scale(1.15); }
+.data-number.near-cursor { transform: scale(1.08); }
+
+.data-number.selection-preview {
+  transform: scale(1.16);
+}
+
+.data-number.near-cursor.selection-preview {
+  transform: scale(1.18);
+}
 
 .data-number.emphasis-1 {
   font-size: 30px;
