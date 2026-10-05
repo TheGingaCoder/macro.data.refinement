@@ -118,11 +118,6 @@ body {
   display: block;
 }
 
-.data-number.is-selected {
-  color: var(--background);
-  background: var(--mint);
-}
-
 .number-world {
   position: absolute;
   left: 0;
@@ -303,4 +298,32 @@ body {
   .bin-meter { font-size: 12px; }
 
   .bin-value { padding-left: 6px; }
+}
+
+.refining-number {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mint);
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.data-number.is-refining {
+  opacity: 0;
+}
+
+.refinement-bin.bank-hit .bin-label,
+.refinement-bin.bank-hit .bin-meter {
+  background: rgba(164, 241, 223, 0.12);
+}
+
+.refinement-bin.bank-hit .bin-label {
+  color: var(--background);
+  background: var(--mint);
 }
