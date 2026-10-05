@@ -149,8 +149,21 @@ function updateCamera() {
     `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;
 }
 
-function centerWorld() {
+function centerWorld({ fit = false } = {}) {
   const viewportRect = viewport.getBoundingClientRect();
+
+  if (fit) {
+    const horizontalFit = viewportRect.width / world.offsetWidth;
+    const verticalFit = viewportRect.height / world.offsetHeight;
+
+    // Start close to the reference density while guaranteeing visible data.
+    camera.scale = clamp(
+      Math.max(Math.min(horizontalFit, verticalFit) * 1.15, 0.72),
+      camera.minScale,
+      1
+    );
+  }
+
   const worldWidth = world.offsetWidth * camera.scale;
   const worldHeight = world.offsetHeight * camera.scale;
 
@@ -268,9 +281,9 @@ viewport.addEventListener("pointerleave", () => {
     .forEach((number) => number.classList.remove("near-cursor"));
 });
 
-window.addEventListener("resize", centerWorld);
+window.addEventListener("resize", () => centerWorld());
 
 buildNumberField();
 applyBinProgress();
 
-requestAnimationFrame(centerWorld);
+requestAnimationFrame(() => centerWorld({ fit: true }));
