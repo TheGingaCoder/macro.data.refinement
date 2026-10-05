@@ -24,7 +24,7 @@ const camera = {
 };
 
 const chunks = new Map();
-const selectedCoordinates = new Set();
+const refinedCoordinates = new Set();
 
 let interactionMode = null;
 let pointerId = null;
@@ -156,8 +156,8 @@ function createChunk(chunkX, chunkY) {
       number.dataset.worldRow = globalRow;
       number.textContent = hashCoordinates(globalColumn, globalRow, 7) % 10;
 
-      if (selectedCoordinates.has(coordinateKey(globalColumn, globalRow))) {
-        number.classList.add("is-selected");
+      if (refinedCoordinates.has(coordinateKey(globalColumn, globalRow))) {
+        number.style.visibility = "hidden";
       }
 
       const emphasis = seededUnit(globalColumn, globalRow, 19);
@@ -302,18 +302,36 @@ function updateSelectionBox() {
   selectionBox.style.height = `${height}px`;
 }
 
-function refreshVisibleSelectionClasses() {
-  viewport.querySelectorAll(".data-number").forEach((number) => {
-    const key = coordinateKey(
-      Number(number.dataset.worldColumn),
-      Number(number.dataset.worldRow)
-    );
-
-    number.classList.toggle("is-selected", selectedCoordinates.has(key));
+function playArrivalSound(index) {
+  playTone({
+    frequency: 480 + (index % 5) * 55,
+    endFrequency: 620 + (index % 5) * 55,
+    duration: 0.025,
+    volume: 0.012,
+    type: "square"
   });
 }
 
-function finalizeSelection() {
+function playBankThunk() {
+  playTone({
+    frequency: 145,
+    endFrequency: 92,
+    duration: 0.11,
+    volume: 0.045,
+    type: "sine"
+  });
+
+  setTimeout(() => {
+    playTone({
+      frequency: 760,
+      duration: 0.035,
+      volume: 0.018,
+      type: "square"
+    });
+  }, 35);
+}
+
+function collectSelectedNumbers() {
   const left = Math.min(selectionStartX, selectionEndX);
   const right = Math.max(selectionStartX, selectionEndX);
   const top = Math.min(selectionStartY, selectionEndY);
@@ -321,10 +339,6 @@ function finalizeSelection() {
 
   const width = right - left;
   const height = bottom - top;
-
-  selectionBox.classList.remove("is-active");
-  selectedCoordinates.clear();
-
   const viewportRect = viewport.getBoundingClientRect();
 
   if (width < 4 && height < 4) {
@@ -333,40 +347,128 @@ function finalizeSelection() {
       viewportRect.top + selectionEndY
     );
 
-    if (target?.classList.contains("data-number")) {
-      selectedCoordinates.add(
-        coordinateKey(
-          Number(target.dataset.worldColumn),
-          Number(target.dataset.worldRow)
-        )
-      );
-    }
-
-    refreshVisibleSelectionClasses();
-    return;
+    return target?.classList.contains("data-number") ? [target] : [];
   }
 
-  viewport.querySelectorAll(".data-number").forEach((number) => {
+  return [...viewport.querySelectorAll(".data-number")].filter((number) => {
+    if (number.classList.contains("is-refining")) return false;
+    if (number.style.visibility === "hidden") return false;
+
     const numberRect = number.getBoundingClientRect();
     const centerX = numberRect.left + numberRect.width / 2 - viewportRect.left;
     const centerY = numberRect.top + numberRect.height / 2 - viewportRect.top;
 
-    if (
+    return (
       centerX >= left &&
       centerX <= right &&
       centerY >= top &&
       centerY <= bottom
-    ) {
-      selectedCoordinates.add(
-        coordinateKey(
-          Number(number.dataset.worldColumn),
-          Number(number.dataset.worldRow)
-        )
-      );
-    }
+    );
+  });
+}
+
+function animateNumbersToBank(numbers) {
+  if (numbers.length === 0) return;
+
+  const bankIndex = Math.floor(Math.random() * bins.length);
+  const bank = bins[bankIndex];
+  const targetRect = bank.getBoundingClientRect();
+  const targetX = targetRect.left + targetRect.width / 2;
+  const targetY = targetRect.top + Math.min(28, targetRect.height / 2);
+
+  const ordered = [...numbers].sort((a, b) => {
+    const aRect = a.getBoundingClientRect();
+    const bRect = b.getBoundingClientRect();
+    return (aRect.left + aRect.top) - (bRect.left + bRect.top);
   });
 
-  refreshVisibleSelectionClasses();
+  bank.classList.add("bank-hit");
+
+  ordered.forEach((number, index) => {
+    const rect = number.getBoundingClientRect();
+    const clone = document.createElement("span");
+
+    clone.className = "refining-number";
+    clone.textContent = number.textContent;
+    clone.style.left = `${rect.left}px`;
+    clone.style.top = `${rect.top}px`;
+    clone.style.width = `${rect.width}px`;
+    clone.style.height = `${rect.height}px`;
+    clone.style.fontSize = getComputedStyle(number).fontSize;
+
+    document.body.appendChild(clone);
+    number.classList.add("is-refining");
+
+    const startX = rect.left + rect.width / 2;
+    const startY = rect.top + rect.height / 2;
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+
+    const bend = Math.max(45, Math.min(130, Math.abs(dx) * 0.12));
+    const direction = index % 2 === 0 ? -1 : 1;
+
+    const delay = Math.min(index * 42, 900);
+    const duration = 460 + Math.min(index * 8, 180);
+
+    const animation = clone.animate(
+      [
+        {
+          transform: "translate3d(0, 0, 0) scale(1)",
+          opacity: 1,
+          offset: 0
+        },
+        {
+          transform: `translate3d(${dx * 0.32 + direction * bend}px, ${dy * 0.22 - 34}px, 0) scale(1.08)`,
+          opacity: 1,
+          offset: 0.35
+        },
+        {
+          transform: `translate3d(${dx * 0.72 - direction * bend * 0.35}px, ${dy * 0.70}px, 0) scale(0.78)`,
+          opacity: 0.92,
+          offset: 0.72
+        },
+        {
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.18)`,
+          opacity: 0,
+          offset: 1
+        }
+      ],
+      {
+        duration,
+        delay,
+        easing: "cubic-bezier(.22,.78,.2,1)",
+        fill: "forwards"
+      }
+    );
+
+    animation.finished.then(() => {
+      const key = coordinateKey(
+        Number(number.dataset.worldColumn),
+        Number(number.dataset.worldRow)
+      );
+
+      refinedCoordinates.add(key);
+      number.style.visibility = "hidden";
+      number.classList.remove("is-refining");
+      clone.remove();
+
+      playArrivalSound(index);
+
+      if (index === ordered.length - 1) {
+        playBankThunk();
+
+        setTimeout(() => {
+          bank.classList.remove("bank-hit");
+        }, 190);
+      }
+    });
+  });
+}
+
+function finalizeSelection() {
+  selectionBox.classList.remove("is-active");
+  const numbers = collectSelectedNumbers();
+  animateNumbersToBank(numbers);
 }
 
 viewport.addEventListener(
@@ -507,8 +609,22 @@ function endInteraction(event) {
 viewport.addEventListener("pointerup", endInteraction);
 
 viewport.addEventListener("pointercancel", (event) => {
+  if (event.pointerId !== pointerId) return;
+
+  const endingMode = interactionMode;
   selectionBox.classList.remove("is-active");
-  endInteraction(event);
+
+  interactionMode = null;
+  pointerId = null;
+  viewport.classList.remove("is-panning");
+
+  if (viewport.hasPointerCapture(event.pointerId)) {
+    viewport.releasePointerCapture(event.pointerId);
+  }
+
+  if (endingMode === "pan") {
+    playReleaseSound();
+  }
 });
 
 viewport.addEventListener("pointerleave", () => {
