@@ -9,52 +9,67 @@
 <body>
   <main class="terminal-shell">
     <header class="terminal-header">
-      <div class="company-identity">
-        <span class="company-mark" aria-hidden="true">◇</span>
-        <span class="company-name">AURELIS DATA DIVISION</span>
+      <div class="file-panel">NARVA</div>
+
+      <div class="completion-panel">
+        <span id="fileProgress">48%</span> Complete
       </div>
 
-      <div class="file-status">
-        <span class="file-name">WOODLAND</span>
-        <span class="file-progress">0%</span>
-        <span class="system-indicator" aria-label="System nominal"></span>
+      <div class="brand-panel" aria-label="Macro Data Refinement">
+        <span class="brand-orbit brand-orbit-a"></span>
+        <span class="brand-orbit brand-orbit-b"></span>
+        <span class="brand-word">MACRO</span>
       </div>
     </header>
 
     <section class="data-viewport" aria-label="Refinement data field">
-      <p class="viewport-status">DATA FIELD READY</p>
+      <div class="number-grid" id="numberGrid"></div>
     </section>
 
-    <footer class="refinement-bins" aria-label="Refinement bins">
-      <div class="refinement-bin" data-bin="01">
-        <span class="bin-number">01</span>
-        <div class="bin-progress-track"><div class="bin-progress-fill"></div></div>
-        <span class="bin-percentage">0%</span>
+    <footer class="refinement-footer">
+      <div class="refinement-bins" id="refinementBins">
+        <div class="refinement-bin" data-bin="00" data-progress="43">
+          <div class="bin-label">00</div>
+          <div class="bin-meter">
+            <div class="bin-fill"></div>
+            <span class="bin-value">43%</span>
+          </div>
+        </div>
+
+        <div class="refinement-bin" data-bin="01" data-progress="25">
+          <div class="bin-label">01</div>
+          <div class="bin-meter">
+            <div class="bin-fill"></div>
+            <span class="bin-value">25%</span>
+          </div>
+        </div>
+
+        <div class="refinement-bin" data-bin="02" data-progress="37">
+          <div class="bin-label">02</div>
+          <div class="bin-meter">
+            <div class="bin-fill"></div>
+            <span class="bin-value">37%</span>
+          </div>
+        </div>
+
+        <div class="refinement-bin" data-bin="03" data-progress="76">
+          <div class="bin-label">03</div>
+          <div class="bin-meter">
+            <div class="bin-fill"></div>
+            <span class="bin-value">76%</span>
+          </div>
+        </div>
+
+        <div class="refinement-bin" data-bin="04" data-progress="60">
+          <div class="bin-label">04</div>
+          <div class="bin-meter">
+            <div class="bin-fill"></div>
+            <span class="bin-value">60%</span>
+          </div>
+        </div>
       </div>
 
-      <div class="refinement-bin" data-bin="02">
-        <span class="bin-number">02</span>
-        <div class="bin-progress-track"><div class="bin-progress-fill"></div></div>
-        <span class="bin-percentage">0%</span>
-      </div>
-
-      <div class="refinement-bin" data-bin="03">
-        <span class="bin-number">03</span>
-        <div class="bin-progress-track"><div class="bin-progress-fill"></div></div>
-        <span class="bin-percentage">0%</span>
-      </div>
-
-      <div class="refinement-bin" data-bin="04">
-        <span class="bin-number">04</span>
-        <div class="bin-progress-track"><div class="bin-progress-fill"></div></div>
-        <span class="bin-percentage">0%</span>
-      </div>
-
-      <div class="refinement-bin" data-bin="05">
-        <span class="bin-number">05</span>
-        <div class="bin-progress-track"><div class="bin-progress-fill"></div></div>
-        <span class="bin-percentage">0%</span>
-      </div>
+      <div class="system-code">0xFF5493 : 0x54DF8A</div>
     </footer>
   </main>
 
