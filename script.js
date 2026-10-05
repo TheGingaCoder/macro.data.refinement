@@ -1,5 +1,6 @@
 const viewport = document.getElementById("dataViewport");
 const world = document.getElementById("numberWorld");
+const selectionBox = document.getElementById("selectionBox");
 const zoomReadout = document.getElementById("zoomReadout");
 const bins = document.querySelectorAll(".refinement-bin");
 
@@ -23,12 +24,18 @@ const camera = {
 };
 
 const chunks = new Map();
+const selectedCoordinates = new Set();
 
-let isDragging = false;
+let interactionMode = null;
 let pointerId = null;
 let lastPointerX = 0;
 let lastPointerY = 0;
 let lastPointerTime = 0;
+
+let selectionStartX = 0;
+let selectionStartY = 0;
+let selectionEndX = 0;
+let selectionEndY = 0;
 let zoomReadoutTimer = null;
 let lastZoomSoundTime = 0;
 let audioContext = null;
@@ -53,6 +60,10 @@ function hashCoordinates(x, y, salt = 0) {
 
 function seededUnit(x, y, salt = 0) {
   return hashCoordinates(x, y, salt) / 4294967295;
+}
+
+function coordinateKey(column, row) {
+  return `${column},${row}`;
 }
 
 function getAudioContext() {
@@ -144,6 +155,10 @@ function createChunk(chunkX, chunkY) {
       number.dataset.worldColumn = globalColumn;
       number.dataset.worldRow = globalRow;
       number.textContent = hashCoordinates(globalColumn, globalRow, 7) % 10;
+
+      if (selectedCoordinates.has(coordinateKey(globalColumn, globalRow))) {
+        number.classList.add("is-selected");
+      }
 
       const emphasis = seededUnit(globalColumn, globalRow, 19);
 
@@ -239,7 +254,9 @@ function setInitialCamera() {
 }
 
 function animateCamera() {
-  if (!isDragging) {
+  const isPanning = interactionMode === "pan";
+
+  if (!isPanning) {
     camera.targetX += camera.velocityX;
     camera.targetY += camera.velocityY;
 
@@ -250,8 +267,8 @@ function animateCamera() {
     if (Math.abs(camera.velocityY) < 0.01) camera.velocityY = 0;
   }
 
-  camera.x = lerp(camera.x, camera.targetX, isDragging ? 0.34 : 0.18);
-  camera.y = lerp(camera.y, camera.targetY, isDragging ? 0.34 : 0.18);
+  camera.x = lerp(camera.x, camera.targetX, isPanning ? 0.34 : 0.18);
+  camera.y = lerp(camera.y, camera.targetY, isPanning ? 0.34 : 0.18);
   camera.scale = lerp(camera.scale, camera.targetScale, 0.16);
 
   if (Math.abs(camera.scale - camera.targetScale) < 0.0001) {
@@ -261,6 +278,95 @@ function animateCamera() {
   applyCameraTransform();
   updateChunks();
   requestAnimationFrame(animateCamera);
+}
+
+
+function viewportPoint(event) {
+  const rect = viewport.getBoundingClientRect();
+
+  return {
+    x: clamp(event.clientX - rect.left, 0, rect.width),
+    y: clamp(event.clientY - rect.top, 0, rect.height)
+  };
+}
+
+function updateSelectionBox() {
+  const left = Math.min(selectionStartX, selectionEndX);
+  const top = Math.min(selectionStartY, selectionEndY);
+  const width = Math.abs(selectionEndX - selectionStartX);
+  const height = Math.abs(selectionEndY - selectionStartY);
+
+  selectionBox.style.left = `${left}px`;
+  selectionBox.style.top = `${top}px`;
+  selectionBox.style.width = `${width}px`;
+  selectionBox.style.height = `${height}px`;
+}
+
+function refreshVisibleSelectionClasses() {
+  viewport.querySelectorAll(".data-number").forEach((number) => {
+    const key = coordinateKey(
+      Number(number.dataset.worldColumn),
+      Number(number.dataset.worldRow)
+    );
+
+    number.classList.toggle("is-selected", selectedCoordinates.has(key));
+  });
+}
+
+function finalizeSelection() {
+  const left = Math.min(selectionStartX, selectionEndX);
+  const right = Math.max(selectionStartX, selectionEndX);
+  const top = Math.min(selectionStartY, selectionEndY);
+  const bottom = Math.max(selectionStartY, selectionEndY);
+
+  const width = right - left;
+  const height = bottom - top;
+
+  selectionBox.classList.remove("is-active");
+  selectedCoordinates.clear();
+
+  const viewportRect = viewport.getBoundingClientRect();
+
+  if (width < 4 && height < 4) {
+    const target = document.elementFromPoint(
+      viewportRect.left + selectionEndX,
+      viewportRect.top + selectionEndY
+    );
+
+    if (target?.classList.contains("data-number")) {
+      selectedCoordinates.add(
+        coordinateKey(
+          Number(target.dataset.worldColumn),
+          Number(target.dataset.worldRow)
+        )
+      );
+    }
+
+    refreshVisibleSelectionClasses();
+    return;
+  }
+
+  viewport.querySelectorAll(".data-number").forEach((number) => {
+    const numberRect = number.getBoundingClientRect();
+    const centerX = numberRect.left + numberRect.width / 2 - viewportRect.left;
+    const centerY = numberRect.top + numberRect.height / 2 - viewportRect.top;
+
+    if (
+      centerX >= left &&
+      centerX <= right &&
+      centerY >= top &&
+      centerY <= bottom
+    ) {
+      selectedCoordinates.add(
+        coordinateKey(
+          Number(number.dataset.worldColumn),
+          Number(number.dataset.worldRow)
+        )
+      );
+    }
+  });
+
+  refreshVisibleSelectionClasses();
 }
 
 viewport.addEventListener(
@@ -298,25 +404,49 @@ viewport.addEventListener(
   { passive: false }
 );
 
+viewport.addEventListener("auxclick", (event) => {
+  if (event.button === 1) {
+    event.preventDefault();
+  }
+});
+
 viewport.addEventListener("pointerdown", (event) => {
-  if (event.button !== 0) return;
+  if (event.button !== 0 && event.button !== 1) return;
 
-  isDragging = true;
   pointerId = event.pointerId;
-  lastPointerX = event.clientX;
-  lastPointerY = event.clientY;
-  lastPointerTime = performance.now();
-
-  camera.velocityX = 0;
-  camera.velocityY = 0;
-
   viewport.setPointerCapture(event.pointerId);
-  viewport.classList.add("is-dragging");
+
+  const point = viewportPoint(event);
+
+  if (event.button === 1) {
+    event.preventDefault();
+
+    interactionMode = "pan";
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    lastPointerTime = performance.now();
+
+    camera.velocityX = 0;
+    camera.velocityY = 0;
+
+    viewport.classList.add("is-panning");
+    playClickSound();
+    return;
+  }
+
+  interactionMode = "select";
+  selectionStartX = point.x;
+  selectionStartY = point.y;
+  selectionEndX = point.x;
+  selectionEndY = point.y;
+
+  selectionBox.classList.add("is-active");
+  updateSelectionBox();
   playClickSound();
 });
 
 viewport.addEventListener("pointermove", (event) => {
-  if (isDragging && event.pointerId === pointerId) {
+  if (interactionMode === "pan" && event.pointerId === pointerId) {
     const now = performance.now();
     const deltaX = event.clientX - lastPointerX;
     const deltaY = event.clientY - lastPointerY;
@@ -335,6 +465,14 @@ viewport.addEventListener("pointermove", (event) => {
     return;
   }
 
+  if (interactionMode === "select" && event.pointerId === pointerId) {
+    const point = viewportPoint(event);
+    selectionEndX = point.x;
+    selectionEndY = point.y;
+    updateSelectionBox();
+    return;
+  }
+
   const previous = viewport.querySelector(".data-number.near-cursor");
   if (previous) previous.classList.remove("near-cursor");
 
@@ -344,22 +482,34 @@ viewport.addEventListener("pointermove", (event) => {
   }
 });
 
-function endDrag(event) {
-  if (!isDragging || event.pointerId !== pointerId) return;
+function endInteraction(event) {
+  if (event.pointerId !== pointerId) return;
 
-  isDragging = false;
+  const endingMode = interactionMode;
+
+  if (endingMode === "select") {
+    finalizeSelection();
+  }
+
+  interactionMode = null;
   pointerId = null;
-  viewport.classList.remove("is-dragging");
+  viewport.classList.remove("is-panning");
 
   if (viewport.hasPointerCapture(event.pointerId)) {
     viewport.releasePointerCapture(event.pointerId);
   }
 
-  playReleaseSound();
+  if (endingMode === "pan") {
+    playReleaseSound();
+  }
 }
 
-viewport.addEventListener("pointerup", endDrag);
-viewport.addEventListener("pointercancel", endDrag);
+viewport.addEventListener("pointerup", endInteraction);
+
+viewport.addEventListener("pointercancel", (event) => {
+  selectionBox.classList.remove("is-active");
+  endInteraction(event);
+});
 
 viewport.addEventListener("pointerleave", () => {
   const highlighted = viewport.querySelector(".data-number.near-cursor");
