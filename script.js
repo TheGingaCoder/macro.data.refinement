@@ -337,33 +337,34 @@ function updateSelectionBox() {
   updateSelectionPreview();
 }
 
-function playArrivalSound(index) {
+function playTransferStart() {
   playTone({
-    frequency: 480 + (index % 5) * 55,
-    endFrequency: 620 + (index % 5) * 55,
-    duration: 0.025,
-    volume: 0.012,
-    type: "square"
+    frequency: 530,
+    endFrequency: 610,
+    duration: 0.09,
+    volume: 0.015,
+    type: "sawtooth"
   });
 }
 
 function playBankThunk() {
   playTone({
-    frequency: 145,
-    endFrequency: 92,
-    duration: 0.11,
-    volume: 0.045,
+    frequency: 138,
+    endFrequency: 86,
+    duration: 0.13,
+    volume: 0.05,
     type: "sine"
   });
 
   setTimeout(() => {
     playTone({
-      frequency: 760,
-      duration: 0.035,
-      volume: 0.018,
+      frequency: 720,
+      endFrequency: 660,
+      duration: 0.045,
+      volume: 0.016,
       type: "square"
     });
-  }, 35);
+  }, 50);
 }
 
 function collectSelectedNumbers() {
@@ -406,45 +407,26 @@ function animateNumbersToBank(numbers) {
 
   const bankIndex = Math.floor(Math.random() * bins.length);
   const bank = bins[bankIndex];
-  const targetRect = bank.getBoundingClientRect();
-  const targetX = targetRect.left + targetRect.width / 2;
-  const targetY = targetRect.top + Math.min(28, targetRect.height / 2);
+  const label = bank.querySelector(".bin-label");
 
-  const ordered = [...numbers].sort((a, b) => {
-    const aRect = a.getBoundingClientRect();
-    const bRect = b.getBoundingClientRect();
-
-    return (
-      aRect.left + aRect.top * 0.35 -
-      (bRect.left + bRect.top * 0.35)
-    );
-  });
-
-  const sourceRects = ordered.map((number) => number.getBoundingClientRect());
-  const averageStartX =
-    sourceRects.reduce((sum, rect) => sum + rect.left + rect.width / 2, 0) /
-    sourceRects.length;
-
-  const curveDirection = targetX >= averageStartX ? 1 : -1;
-  const curveStrength = Math.min(
-    180,
-    Math.max(80, Math.abs(targetX - averageStartX) * 0.16)
-  );
-
+  const BANK_RISE_PX = 22;
   const TOTAL_RELEASE_MS = 1000;
-  const ITEM_DURATION_MS = Math.min(
-    720,
-    Math.max(260, TOTAL_RELEASE_MS / Math.max(1, ordered.length) * 4.2)
-  );
 
-  const availableStagger = Math.max(0, TOTAL_RELEASE_MS - ITEM_DURATION_MS);
-  const stagger =
-    ordered.length <= 1 ? 0 : availableStagger / (ordered.length - 1);
-
+  bank.classList.add("bank-rising");
   bank.classList.add("bank-hit");
 
-  ordered.forEach((number, index) => {
-    const rect = sourceRects[index];
+  setTimeout(() => {
+    bank.classList.add("bank-open");
+  }, 40);
+
+  const labelRect = label.getBoundingClientRect();
+  const targetX = labelRect.left + labelRect.width / 2;
+  const targetY = labelRect.top + labelRect.height / 2 - BANK_RISE_PX;
+
+  playTransferStart();
+
+  const completions = numbers.map((number) => {
+    const rect = number.getBoundingClientRect();
     const clone = document.createElement("span");
 
     clone.className = "refining-number";
@@ -464,66 +446,42 @@ function animateNumbersToBank(numbers) {
     const startY = rect.top + rect.height / 2;
     const dx = targetX - startX;
     const dy = targetY - startY;
-    const curve = curveStrength * curveDirection;
-
-    const delay = stagger * index;
-    const duration = ITEM_DURATION_MS;
 
     const animation = clone.animate(
       [
         {
-          transform: "translate3d(0, 0, 0) scale(1.16)",
-          opacity: 1,
-          offset: 0
+          transform: "translate3d(0, 0, 0) scale(1.14)",
+          opacity: 1
         },
         {
-          transform: `translate3d(${dx * 0.18 + curve * 0.22}px, ${dy * 0.12 - 14}px, 0) scale(1.16)`,
-          opacity: 1,
-          offset: 0.18
-        },
-        {
-          transform: `translate3d(${dx * 0.40 + curve * 0.48}px, ${dy * 0.30 - 26}px, 0) scale(1.08)`,
-          opacity: 1,
-          offset: 0.40
-        },
-        {
-          transform: `translate3d(${dx * 0.64 + curve * 0.52}px, ${dy * 0.56 - 18}px, 0) scale(0.93)`,
-          opacity: 0.96,
-          offset: 0.64
-        },
-        {
-          transform: `translate3d(${dx * 0.84 + curve * 0.26}px, ${dy * 0.80 - 5}px, 0) scale(0.62)`,
-          opacity: 0.72,
-          offset: 0.84
-        },
-        {
-          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.12)`,
-          opacity: 0,
-          offset: 1
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.18)`,
+          opacity: 0
         }
       ],
       {
-        duration,
-        delay,
-        easing: "cubic-bezier(.18,.72,.22,1)",
+        duration: TOTAL_RELEASE_MS,
+        easing: "linear",
         fill: "forwards"
       }
     );
 
-    animation.finished.then(() => {
+    return animation.finished.then(() => {
       number.classList.remove("is-refining");
       clone.remove();
-
-      playArrivalSound(index);
-
-      if (index === ordered.length - 1) {
-        playBankThunk();
-
-        setTimeout(() => {
-          bank.classList.remove("bank-hit");
-        }, 220);
-      }
     });
+  });
+
+  Promise.all(completions).then(() => {
+    playBankThunk();
+
+    setTimeout(() => {
+      bank.classList.remove("bank-open");
+    }, 120);
+
+    setTimeout(() => {
+      bank.classList.remove("bank-rising");
+      bank.classList.remove("bank-hit");
+    }, 240);
   });
 }
 
