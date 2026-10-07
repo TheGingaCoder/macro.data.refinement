@@ -543,6 +543,145 @@ body::after {
   cursor: default;
 }
 
-.data-viewport.has-pending-selection .selection-box {
-  display: none !important;
+
+
+/* Selection refinement HUD */
+
+.selection-box {
+  overflow: visible;
+}
+
+.selection-box.is-pending {
+  display: block;
+  background: rgba(164, 241, 223, 0.025);
+  border-style: solid;
+}
+
+.selection-box.is-pending::before,
+.selection-box.is-pending::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.selection-box.is-pending::before {
+  left: -1px;
+  top: -1px;
+  border-left: 2px solid var(--mint);
+  border-top: 2px solid var(--mint);
+}
+
+.selection-box.is-pending::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid var(--mint);
+  border-bottom: 2px solid var(--mint);
+}
+
+.selection-hud {
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 8px);
+  width: 190px;
+  padding: 7px 8px 8px;
+  border: 1px solid var(--line);
+  background: #031019;
+  color: var(--mint);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 120ms linear,
+    transform 120ms steps(4, end);
+}
+
+.selection-box.is-active .selection-hud,
+.selection-box.is-pending .selection-hud {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.selection-hud-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  letter-spacing: .07em;
+}
+
+#selectionState {
+  opacity: .65;
+}
+
+.selection-signature {
+  display: grid;
+  gap: 3px;
+}
+
+.sig-row {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 5px;
+}
+
+.sig-row i {
+  display: block;
+  height: 5px;
+  border: 1px solid currentColor;
+  overflow: hidden;
+}
+
+.sig-row b {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: currentColor;
+  transition: width 90ms steps(5, end);
+}
+
+.sig-wo { color: #00d6c5; }
+.sig-fc { color: #25e1ff; }
+.sig-dr { color: #d878cf; }
+.sig-ma { color: #f2e6b8; }
+
+/* Bank need/feedback states */
+
+.refinement-bin.bank-ready:hover {
+  transform: translateY(-4px);
+  z-index: 40;
+}
+
+.refinement-bin.bank-ready:hover .temper-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.refinement-bin.bank-ready:hover .temper-fill {
+  width: var(--need, 0%) !important;
+}
+
+.refinement-bin.bank-match-good .bin-label,
+.refinement-bin.bank-match-good .bin-meter {
+  box-shadow: 0 0 0 1px var(--mint);
+}
+
+.refinement-bin.bank-match-bad .bin-label,
+.refinement-bin.bank-match-bad .bin-meter {
+  opacity: .45;
+}
+
+.refinement-bin.bank-reject {
+  animation: bank-reject-shake 240ms steps(5, end);
+}
+
+@keyframes bank-reject-shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
 }
