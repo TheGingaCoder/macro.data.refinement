@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Macro Data Refinement</title>
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <main class="terminal-shell">
@@ -24,7 +24,20 @@
 
     <section class="data-viewport" id="dataViewport" aria-label="Refinement data field">
       <div class="number-world" id="numberWorld"></div>
-      <div class="selection-box" id="selectionBox" aria-hidden="true"></div>
+      <div class="selection-box" id="selectionBox" aria-hidden="true">
+        <div class="selection-hud">
+          <div class="selection-hud-top">
+            <span id="selectionCount">0 DATA</span>
+            <span id="selectionState">SCANNING</span>
+          </div>
+          <div class="selection-signature">
+            <div class="sig-row sig-wo"><span>WO</span><i><b id="sigWO"></b></i></div>
+            <div class="sig-row sig-fc"><span>FC</span><i><b id="sigFC"></b></i></div>
+            <div class="sig-row sig-dr"><span>DR</span><i><b id="sigDR"></b></i></div>
+            <div class="sig-row sig-ma"><span>MA</span><i><b id="sigMA"></b></i></div>
+          </div>
+        </div>
+      </div>
 
       <div class="zoom-readout" id="zoomReadout" aria-live="polite">100%</div>
     </section>
@@ -106,6 +119,6 @@
     </footer>
   </main>
 
-  <script src="script.js?v=14"></script>
+  <script src="script.js?v=15"></script>
 </body>
 </html>
