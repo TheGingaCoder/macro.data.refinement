@@ -160,14 +160,16 @@ body {
     opacity 120ms linear;
 }
 
-.data-number.near-cursor { transform: scale(1.08); }
+.data-number.near-cursor {
+  transform: scale(1.12);
+}
 
 .data-number.selection-preview {
-  transform: scale(1.16);
+  transform: scale(1.34);
 }
 
 .data-number.near-cursor.selection-preview {
-  transform: scale(1.18);
+  transform: scale(1.42);
 }
 
 .data-number.emphasis-1 {
@@ -219,7 +221,7 @@ body {
   min-width: 0;
   cursor: pointer;
   user-select: none;
-  transition: transform 220ms steps(6, end);
+  transition: transform 420ms steps(10, end);
 }
 
 .refinement-bin.bank-rising {
@@ -387,7 +389,7 @@ body::after {
   bottom: 0;
   width: 50%;
   background: #031019;
-  transition: transform 170ms steps(6, end);
+  transition: transform 380ms steps(10, end);
   z-index: 2;
 }
 
@@ -443,8 +445,8 @@ body::after {
   opacity: 0;
   transform: translateY(100%);
   transition:
-    transform 260ms steps(8, end),
-    opacity 80ms linear;
+    transform 420ms steps(10, end),
+    opacity 140ms linear;
   pointer-events: none;
   overflow: hidden;
 }
@@ -479,7 +481,7 @@ body::after {
   height: 100%;
   width: 0%;
   background: currentColor;
-  transition: width 220ms steps(8, end);
+  transition: width 360ms steps(10, end);
 }
 
 .temper-wo { color: #00d6c5; }
