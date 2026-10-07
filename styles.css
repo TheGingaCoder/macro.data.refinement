@@ -130,11 +130,11 @@ body {
 
 .number-chunk {
   position: absolute;
-  width: 640px;
-  height: 440px;
+  width: 760px;
+  height: 520px;
   display: grid;
-  grid-template-columns: repeat(10, 64px);
-  grid-template-rows: repeat(8, 55px);
+  grid-template-columns: repeat(10, 76px);
+  grid-template-rows: repeat(8, 65px);
   align-items: center;
   justify-items: center;
   contain: layout style paint;
@@ -148,7 +148,7 @@ body {
   height: 1.4em;
   color: var(--mint);
   font-family: "Courier New", Courier, monospace;
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1;
   user-select: none;
@@ -171,12 +171,12 @@ body {
 }
 
 .data-number.emphasis-1 {
-  font-size: 30px;
+  font-size: 39px;
   font-weight: 400;
 }
 
 .data-number.emphasis-2 {
-  font-size: 38px;
+  font-size: 48px;
   font-weight: 400;
 }
 
@@ -223,7 +223,7 @@ body {
 }
 
 .refinement-bin.bank-rising {
-  transform: translateY(-22px);
+  transform: translateY(-8px);
 }
 
 .refinement-bin:active .bin-label,
@@ -409,4 +409,103 @@ body::after {
 
 .refinement-bin.bank-open .bin-label::after {
   transform: translateX(102%);
+}
+
+
+/* Rising MDR temper panel */
+
+.refinement-footer {
+  overflow: visible;
+  z-index: 20;
+}
+
+.refinement-bins {
+  overflow: visible;
+}
+
+.refinement-bin {
+  z-index: 1;
+}
+
+.refinement-bin.bank-rising {
+  z-index: 30;
+}
+
+.temper-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 53px;
+  height: 152px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  background: #031019;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    transform 260ms steps(8, end),
+    opacity 80ms linear;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.refinement-bin.bank-rising .temper-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.temper-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+}
+
+.temper-row > span {
+  text-align: left;
+}
+
+.temper-track {
+  position: relative;
+  height: 16px;
+  border: 1px solid currentColor;
+  overflow: hidden;
+}
+
+.temper-fill {
+  height: 100%;
+  width: 0%;
+  background: currentColor;
+  transition: width 220ms steps(8, end);
+}
+
+.temper-wo { color: #00d6c5; }
+.temper-fc { color: #25e1ff; }
+.temper-dr { color: #d878cf; }
+.temper-ma { color: #f2e6b8; }
+
+.refinement-bin.bank-rising .temper-wo .temper-fill { width: 44%; }
+.refinement-bin.bank-rising .temper-fc .temper-fill { width: 57%; }
+.refinement-bin.bank-rising .temper-dr .temper-fill { width: 20%; }
+.refinement-bin.bank-rising .temper-ma .temper-fill { width: 53%; }
+
+@media (max-width: 900px) {
+  .temper-panel {
+    height: 132px;
+    padding: 10px;
+  }
+
+  .temper-row {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 6px;
+    height: 27px;
+    font-size: 11px;
+  }
+
+  .temper-track {
+    height: 13px;
+  }
 }
