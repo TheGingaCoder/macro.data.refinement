@@ -511,3 +511,38 @@ body::after {
     height: 13px;
   }
 }
+
+
+/* Pending refinement state */
+.refinement-bin.bank-ready {
+  cursor: pointer;
+}
+
+.refinement-bin.bank-ready .bin-label,
+.refinement-bin.bank-ready .bin-meter {
+  border-color: var(--mint);
+}
+
+.refinement-bin.bank-ready .bin-label {
+  animation: bank-ready-pulse 820ms steps(2, end) infinite;
+}
+
+@keyframes bank-ready-pulse {
+  0%, 100% {
+    background: #031019;
+    color: var(--mint);
+  }
+
+  50% {
+    background: var(--mint);
+    color: var(--background);
+  }
+}
+
+.data-viewport.has-pending-selection {
+  cursor: default;
+}
+
+.data-viewport.has-pending-selection .selection-box {
+  display: none !important;
+}
