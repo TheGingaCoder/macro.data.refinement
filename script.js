@@ -4,8 +4,8 @@ const selectionBox = document.getElementById("selectionBox");
 const zoomReadout = document.getElementById("zoomReadout");
 const bins = document.querySelectorAll(".refinement-bin");
 
-const CHUNK_WIDTH = 640;
-const CHUNK_HEIGHT = 440;
+const CHUNK_WIDTH = 760;
+const CHUNK_HEIGHT = 520;
 const CHUNK_COLUMNS = 10;
 const CHUNK_ROWS = 8;
 const CHUNK_MARGIN = 2;
@@ -409,7 +409,7 @@ function animateNumbersToBank(numbers) {
   const bank = bins[bankIndex];
   const label = bank.querySelector(".bin-label");
 
-  const BANK_RISE_PX = 22;
+  const BANK_RISE_PX = 8;
   const TOTAL_RELEASE_MS = 1000;
 
   bank.classList.add("bank-rising");
