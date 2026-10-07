@@ -415,9 +415,10 @@ function animateNumbersToBank(numbers) {
   bank.classList.add("bank-rising");
   bank.classList.add("bank-hit");
 
+  // Let the panel visibly rise first, then open the two doors outward.
   setTimeout(() => {
     bank.classList.add("bank-open");
-  }, 40);
+  }, 260);
 
   const labelRect = label.getBoundingClientRect();
   const targetX = labelRect.left + labelRect.width / 2;
@@ -474,14 +475,15 @@ function animateNumbersToBank(numbers) {
   Promise.all(completions).then(() => {
     playBankThunk();
 
+    // Hold the open state briefly so the mechanical action is readable.
     setTimeout(() => {
       bank.classList.remove("bank-open");
-    }, 120);
+    }, 360);
 
     setTimeout(() => {
       bank.classList.remove("bank-rising");
       bank.classList.remove("bank-hit");
-    }, 240);
+    }, 820);
   });
 }
 
