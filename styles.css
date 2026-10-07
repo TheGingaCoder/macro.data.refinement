@@ -154,7 +154,10 @@ body {
   user-select: none;
   pointer-events: auto;
   transform-origin: center;
-  transition: transform 150ms cubic-bezier(.2,.7,.2,1), opacity 120ms linear;
+  text-shadow: 0 0 6px rgba(164, 241, 223, 0.24);
+  transition:
+    transform 150ms cubic-bezier(.2,.7,.2,1),
+    opacity 120ms linear;
 }
 
 .data-number.near-cursor { transform: scale(1.08); }
@@ -212,9 +215,15 @@ body {
 }
 
 .refinement-bin {
+  position: relative;
   min-width: 0;
   cursor: pointer;
   user-select: none;
+  transition: transform 220ms steps(6, end);
+}
+
+.refinement-bin.bank-rising {
+  transform: translateY(-22px);
 }
 
 .refinement-bin:active .bin-label,
@@ -223,13 +232,18 @@ body {
 }
 
 .bin-label {
+  position: relative;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   border: 1px solid var(--line);
+  background: #031019;
+  color: var(--mint);
   font-family: "Courier New", Courier, monospace;
   font-size: 16px;
+  text-shadow: 0 0 5px rgba(164, 241, 223, 0.22);
 }
 
 .bin-meter {
@@ -318,6 +332,7 @@ body {
   font-family: "Courier New", Courier, monospace;
   font-weight: 700;
   line-height: 1;
+  text-shadow: 0 0 6px rgba(164, 241, 223, 0.28);
   pointer-events: none;
   will-change: transform, opacity;
 }
@@ -328,10 +343,70 @@ body {
 
 .refinement-bin.bank-hit .bin-label,
 .refinement-bin.bank-hit .bin-meter {
-  background: rgba(164, 241, 223, 0.12);
+  box-shadow: 0 0 0 1px rgba(164, 241, 223, 0.2);
 }
 
-.refinement-bin.bank-hit .bin-label {
-  color: var(--background);
-  background: var(--mint);
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(164, 241, 223, 0.055) 0px,
+      rgba(164, 241, 223, 0.055) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 0%,
+      transparent 58%,
+      rgba(0, 0, 0, 0.18) 100%
+    );
+}
+
+
+.bin-label::before,
+.bin-label::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: #031019;
+  transition: transform 170ms steps(6, end);
+  z-index: 2;
+}
+
+.bin-label::before {
+  left: 0;
+  border-right: 1px solid var(--line);
+  transform: translateX(0);
+}
+
+.bin-label::after {
+  right: 0;
+  border-left: 1px solid var(--line);
+  transform: translateX(0);
+}
+
+.refinement-bin.bank-open .bin-label::before {
+  transform: translateX(-102%);
+}
+
+.refinement-bin.bank-open .bin-label::after {
+  transform: translateX(102%);
 }
