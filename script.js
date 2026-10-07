@@ -4,6 +4,14 @@ const selectionBox = document.getElementById("selectionBox");
 const zoomReadout = document.getElementById("zoomReadout");
 const bins = document.querySelectorAll(".refinement-bin");
 const fileProgress = document.getElementById("fileProgress");
+const selectionCount = document.getElementById("selectionCount");
+const selectionState = document.getElementById("selectionState");
+const signatureBars = {
+  WO: document.getElementById("sigWO"),
+  FC: document.getElementById("sigFC"),
+  DR: document.getElementById("sigDR"),
+  MA: document.getElementById("sigMA")
+};
 
 const CHUNK_WIDTH = 760;
 const CHUNK_HEIGHT = 520;
@@ -41,6 +49,8 @@ let lastZoomSoundTime = 0;
 let audioContext = null;
 let pendingSelection = [];
 let transferInProgress = false;
+let pendingSignature = { WO: 0, FC: 0, DR: 0, MA: 0 };
+const temperKeys = ["WO", "FC", "DR", "MA"];
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -157,6 +167,9 @@ function createChunk(chunkX, chunkY) {
       number.dataset.worldColumn = globalColumn;
       number.dataset.worldRow = globalRow;
       number.textContent = hashCoordinates(globalColumn, globalRow, 7) % 10;
+      number.dataset.temper = temperKeys[
+        hashCoordinates(globalColumn, globalRow, 29) % temperKeys.length
+      ];
 
       const emphasis = seededUnit(globalColumn, globalRow, 19);
 
@@ -208,6 +221,94 @@ function updateChunks() {
       chunks.delete(key);
     }
   }
+}
+
+function initializeBankNeeds() {
+  bins.forEach((bin, index) => {
+    const base = Number(bin.dataset.bin || index);
+
+    const needs = {
+      WO: 18 + (hashCoordinates(base, 11, 1) % 67),
+      FC: 18 + (hashCoordinates(base, 11, 2) % 67),
+      DR: 18 + (hashCoordinates(base, 11, 3) % 67),
+      MA: 18 + (hashCoordinates(base, 11, 4) % 67)
+    };
+
+    const total = needs.WO + needs.FC + needs.DR + needs.MA;
+
+    temperKeys.forEach((key) => {
+      needs[key] = Math.round((needs[key] / total) * 100);
+    });
+
+    bin._needs = needs;
+
+    const rows = {
+      WO: bin.querySelector(".temper-wo .temper-fill"),
+      FC: bin.querySelector(".temper-fc .temper-fill"),
+      DR: bin.querySelector(".temper-dr .temper-fill"),
+      MA: bin.querySelector(".temper-ma .temper-fill")
+    };
+
+    temperKeys.forEach((key) => {
+      rows[key].style.setProperty("--need", `${needs[key]}%`);
+    });
+  });
+}
+
+function calculateSignature(numbers) {
+  const counts = { WO: 0, FC: 0, DR: 0, MA: 0 };
+
+  numbers.forEach((number) => {
+    const temper = number.dataset.temper;
+    if (counts[temper] !== undefined) counts[temper] += 1;
+  });
+
+  const total = Math.max(1, numbers.length);
+
+  temperKeys.forEach((key) => {
+    counts[key] = Math.round((counts[key] / total) * 100);
+  });
+
+  return counts;
+}
+
+function updateSelectionHud(numbers, stateText = "SCANNING") {
+  const signature = calculateSignature(numbers);
+
+  selectionCount.textContent = `${numbers.length} DATA`;
+  selectionState.textContent = stateText;
+
+  temperKeys.forEach((key) => {
+    signatureBars[key].style.width = `${signature[key]}%`;
+  });
+
+  return signature;
+}
+
+function compatibilityScore(signature, needs) {
+  const difference = temperKeys.reduce(
+    (sum, key) => sum + Math.abs(signature[key] - needs[key]),
+    0
+  );
+
+  return clamp(100 - difference / 2, 0, 100);
+}
+
+function updateBankCompatibility() {
+  if (pendingSelection.length === 0) {
+    bins.forEach((bin) => {
+      bin.classList.remove("bank-match-good", "bank-match-bad");
+    });
+    return;
+  }
+
+  bins.forEach((bin) => {
+    const score = compatibilityScore(pendingSignature, bin._needs);
+    bin.dataset.compatibility = Math.round(score);
+
+    bin.classList.toggle("bank-match-good", score >= 72);
+    bin.classList.toggle("bank-match-bad", score < 40);
+  });
 }
 
 function updateFileProgress() {
@@ -344,6 +445,12 @@ function updateSelectionPreview() {
       centerY <= bottom
     );
   });
+
+  const previewNumbers = [
+    ...viewport.querySelectorAll(".data-number.selection-preview")
+  ];
+
+  updateSelectionHud(previewNumbers, "SCANNING");
 }
 
 function clearSelectionPreview() {
@@ -431,7 +538,7 @@ function collectSelectedNumbers() {
   });
 }
 
-function animateNumbersToBank(numbers, bank) {
+function animateNumbersToBank(numbers, bank, compatibility = 60) {
   if (numbers.length === 0 || !bank) return Promise.resolve();
 
   transferInProgress = true;
@@ -503,7 +610,16 @@ function animateNumbersToBank(numbers, bank) {
   return Promise.all(completions).then(() => {
     playBankThunk();
 
-    const gain = Math.max(1, Math.min(8, Math.ceil(numbers.length / 4)));
+    const qualityMultiplier =
+      compatibility >= 80 ? 1.6 :
+      compatibility >= 60 ? 1.15 :
+      0.65;
+
+    const gain = Math.max(
+      1,
+      Math.min(10, Math.ceil(numbers.length / 4) * qualityMultiplier)
+    );
+
     const current = Number(bank.dataset.progress || 0);
     bank.dataset.progress = Math.min(100, current + gain);
 
@@ -536,17 +652,50 @@ function clearPendingSelection() {
   });
 
   pendingSelection = [];
+  pendingSignature = { WO: 0, FC: 0, DR: 0, MA: 0 };
+
+  selectionBox.classList.remove("is-pending");
   setBanksReady(false);
+  updateBankCompatibility();
+  updateSelectionHud([], "IDLE");
 }
 
 function commitPendingSelection(bank) {
   if (pendingSelection.length === 0 || transferInProgress) return;
 
   const numbers = [...pendingSelection];
-  pendingSelection = [];
-  setBanksReady(false);
+  const signature = { ...pendingSignature };
+  const score = compatibilityScore(signature, bank._needs);
 
-  animateNumbersToBank(numbers, bank);
+  pendingSelection = [];
+  pendingSignature = { WO: 0, FC: 0, DR: 0, MA: 0 };
+
+  selectionBox.classList.remove("is-pending");
+  setBanksReady(false);
+  updateBankCompatibility();
+
+  if (score < 36) {
+    bank.classList.add("bank-reject");
+
+    playTone({
+      frequency: 190,
+      endFrequency: 125,
+      duration: 0.12,
+      volume: 0.03,
+      type: "sawtooth"
+    });
+
+    numbers.forEach((number) => number.classList.remove("selection-preview"));
+
+    setTimeout(() => {
+      bank.classList.remove("bank-reject");
+    }, 280);
+
+    return;
+  }
+
+  bank.dataset.lastCompatibility = Math.round(score);
+  animateNumbersToBank(numbers, bank, score);
 }
 
 function finalizeSelection() {
@@ -567,12 +716,15 @@ function finalizeSelection() {
   }
 
   pendingSelection = numbers;
+  pendingSignature = updateSelectionHud(numbers, "CHOOSE BANK");
 
   pendingSelection.forEach((number) => {
     number.classList.add("selection-preview");
   });
 
+  selectionBox.classList.add("is-pending");
   setBanksReady(true);
+  updateBankCompatibility();
   playTone({
     frequency: 610,
     endFrequency: 710,
@@ -622,6 +774,14 @@ viewport.addEventListener(
 viewport.addEventListener("auxclick", (event) => {
   if (event.button === 1) {
     event.preventDefault();
+  }
+});
+
+viewport.addEventListener("contextmenu", (event) => {
+  if (pendingSelection.length > 0 && !transferInProgress) {
+    event.preventDefault();
+    clearPendingSelection();
+    playReleaseSound();
   }
 });
 
@@ -756,6 +916,8 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+initializeBankNeeds();
 applyBinProgress();
+updateSelectionHud([], "IDLE");
 setInitialCamera();
 requestAnimationFrame(animateCamera);
