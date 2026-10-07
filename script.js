@@ -3,6 +3,7 @@ const world = document.getElementById("numberWorld");
 const selectionBox = document.getElementById("selectionBox");
 const zoomReadout = document.getElementById("zoomReadout");
 const bins = document.querySelectorAll(".refinement-bin");
+const fileProgress = document.getElementById("fileProgress");
 
 const CHUNK_WIDTH = 760;
 const CHUNK_HEIGHT = 520;
@@ -38,6 +39,8 @@ let selectionEndY = 0;
 let zoomReadoutTimer = null;
 let lastZoomSoundTime = 0;
 let audioContext = null;
+let pendingSelection = [];
+let transferInProgress = false;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -207,18 +210,42 @@ function updateChunks() {
   }
 }
 
-function applyBinProgress() {
-  bins.forEach((bin) => {
-    const progress = Number(bin.dataset.progress);
-    const fill = bin.querySelector(".bin-fill");
-    const value = bin.querySelector(".bin-value");
+function updateFileProgress() {
+  const total =
+    [...bins].reduce(
+      (sum, bin) => sum + Number(bin.dataset.progress || 0),
+      0
+    ) / bins.length;
 
-    fill.style.width = `${progress}%`;
-    value.textContent = `${progress}%`;
-    bin.addEventListener("pointerdown", playClickSound);
-  });
+  fileProgress.textContent = `${Math.round(total)}%`;
 }
 
+function updateBinDisplay(bin) {
+  const progress = Number(bin.dataset.progress || 0);
+  const fill = bin.querySelector(".bin-fill");
+  const value = bin.querySelector(".bin-value");
+
+  fill.style.width = `${progress}%`;
+  value.textContent = `${progress}%`;
+}
+
+function applyBinProgress() {
+  bins.forEach((bin) => {
+    updateBinDisplay(bin);
+
+    bin.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      playClickSound();
+    });
+
+    bin.addEventListener("click", () => {
+      if (pendingSelection.length === 0 || transferInProgress) return;
+      commitPendingSelection(bin);
+    });
+  });
+
+  updateFileProgress();
+}
 function applyCameraTransform() {
   world.style.transform =
     `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`;
@@ -286,6 +313,8 @@ function viewportPoint(event) {
 }
 
 function updateSelectionPreview() {
+  if (pendingSelection.length > 0 || transferInProgress) return;
+
   const left = Math.min(selectionStartX, selectionEndX);
   const right = Math.max(selectionStartX, selectionEndX);
   const top = Math.min(selectionStartY, selectionEndY);
@@ -402,11 +431,10 @@ function collectSelectedNumbers() {
   });
 }
 
-function animateNumbersToBank(numbers) {
-  if (numbers.length === 0) return;
+function animateNumbersToBank(numbers, bank) {
+  if (numbers.length === 0 || !bank) return Promise.resolve();
 
-  const bankIndex = Math.floor(Math.random() * bins.length);
-  const bank = bins[bankIndex];
+  transferInProgress = true;
   const label = bank.querySelector(".bin-label");
 
   const BANK_RISE_PX = 8;
@@ -472,10 +500,16 @@ function animateNumbersToBank(numbers) {
     });
   });
 
-  Promise.all(completions).then(() => {
+  return Promise.all(completions).then(() => {
     playBankThunk();
 
-    // Hold the open state briefly so the mechanical action is readable.
+    const gain = Math.max(1, Math.min(8, Math.ceil(numbers.length / 4)));
+    const current = Number(bank.dataset.progress || 0);
+    bank.dataset.progress = Math.min(100, current + gain);
+
+    updateBinDisplay(bank);
+    updateFileProgress();
+
     setTimeout(() => {
       bank.classList.remove("bank-open");
     }, 360);
@@ -483,21 +517,77 @@ function animateNumbersToBank(numbers) {
     setTimeout(() => {
       bank.classList.remove("bank-rising");
       bank.classList.remove("bank-hit");
+      transferInProgress = false;
     }, 820);
   });
 }
 
+function setBanksReady(isReady) {
+  bins.forEach((bin) => {
+    bin.classList.toggle("bank-ready", isReady);
+  });
+
+  viewport.classList.toggle("has-pending-selection", isReady);
+}
+
+function clearPendingSelection() {
+  pendingSelection.forEach((number) => {
+    number.classList.remove("selection-preview");
+  });
+
+  pendingSelection = [];
+  setBanksReady(false);
+}
+
+function commitPendingSelection(bank) {
+  if (pendingSelection.length === 0 || transferInProgress) return;
+
+  const numbers = [...pendingSelection];
+  pendingSelection = [];
+  setBanksReady(false);
+
+  animateNumbersToBank(numbers, bank);
+}
+
 function finalizeSelection() {
   selectionBox.classList.remove("is-active");
+
+  if (transferInProgress) {
+    clearSelectionPreview();
+    return;
+  }
+
+  clearPendingSelection();
+
   const numbers = collectSelectedNumbers();
-  clearSelectionPreview();
-  animateNumbersToBank(numbers);
+
+  if (numbers.length === 0) {
+    clearSelectionPreview();
+    return;
+  }
+
+  pendingSelection = numbers;
+
+  pendingSelection.forEach((number) => {
+    number.classList.add("selection-preview");
+  });
+
+  setBanksReady(true);
+  playTone({
+    frequency: 610,
+    endFrequency: 710,
+    duration: 0.055,
+    volume: 0.018,
+    type: "square"
+  });
 }
 
 viewport.addEventListener(
   "wheel",
   (event) => {
     event.preventDefault();
+
+    if (pendingSelection.length > 0 || transferInProgress) return;
 
     const rect = viewport.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
@@ -536,6 +626,7 @@ viewport.addEventListener("auxclick", (event) => {
 });
 
 viewport.addEventListener("pointerdown", (event) => {
+  if (pendingSelection.length > 0 || transferInProgress) return;
   if (event.button !== 0 && event.button !== 1) return;
 
   pointerId = event.pointerId;
@@ -657,6 +748,13 @@ viewport.addEventListener("pointerleave", () => {
 });
 
 window.addEventListener("resize", updateChunks);
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && pendingSelection.length > 0 && !transferInProgress) {
+    clearPendingSelection();
+    playReleaseSound();
+  }
+});
 
 applyBinProgress();
 setInitialCamera();
